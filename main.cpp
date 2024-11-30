@@ -8,7 +8,6 @@
 
 #pragma comment(lib, "iphlpapi.lib")  // Link with the IP Helper API library
 
-#define SERVER_IP "192.168.50.186"
 #define SERVER_PORT 4454
 
 
@@ -18,8 +17,10 @@ int main()
 
     std::string routerIp = getRouterIp();
     std::string input = "";
+    std::cout << "Type 'START' when you have started the hotspot on the phone" << std::endl;
     while (input != "START")
     {
+        std::cout << "Enter Command: ";
         std::cin >> input;
     }
 
@@ -55,6 +56,7 @@ int main()
     }
     
     std::string hello;
+    std::cout << "If wish to stop enter 'STOP' else Enter a letter (any letter)" << std::endl;
     while(hello != "STOP")
     {
         char buffer[4096];
@@ -69,7 +71,7 @@ int main()
             }
         }
         std::string message(buffer);
-        std::cout << "message sent: " << message << std::endl;
+        std::cout << "message sent: " << message << std::endl << "Enter Command: ";
         std::cin >> hello;
     }
 
