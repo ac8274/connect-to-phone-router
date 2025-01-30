@@ -10,7 +10,8 @@
 
 #define SERVER_PORT 4454
 
-
+void pushDouble(double src, char* dest, int offset);
+double extractDouble(char* buffer, int offset);
 std::string getRouterIp();
 int main()
 {
@@ -57,21 +58,25 @@ int main()
     
     std::string hello;
     std::cout << "If wish to stop enter 'STOP' else Enter a letter (any letter)" << std::endl;
+    double currentLatatiude = 20.4;
+    double currentLongtatiude = 21.6;
+    double currentElevation = 2.9;
     while(hello != "STOP")
     {
         char buffer[4096];
-        std::string str = "The Number is:  1234.2222341234";
-        send(clientSocket, str.c_str(), str.length(), 0);
+
+        pushDouble(currentLatatiude, buffer, 0);
+        pushDouble(currentLongtatiude, buffer, sizeof(double));
+        pushDouble(currentElevation, buffer, sizeof(double) * 2);
+
+        send(clientSocket, buffer, 4096, 0);
+
         recv(clientSocket, buffer, 4096, 0);
-        for (int i = 0; i < 4096; i++)
-        {
-            if (buffer[i] <= 31 || buffer[i] >= 127)
-            {
-                buffer[i] = '\0';
-            }
-        }
-        std::string message(buffer);
-        std::cout << "message sent: " << message << std::endl << "Enter Command: ";
+
+        currentLatatiude += extractDouble(buffer, 0);
+        currentLongtatiude += extractDouble(buffer, sizeof(double));
+        currentElevation += extractDouble(buffer, sizeof(double)*2);
+        
         std::cin >> hello;
     }
 
@@ -84,6 +89,17 @@ int main()
     return 0;
 }
 
+void pushDouble(double src,char* dest, int offset)
+{
+    memcpy(dest+ offset, &src, sizeof(double));
+}
+
+double extractDouble(char* buffer,int offset)
+{
+    double data = 0;
+    memcpy(&data, buffer + offset, sizeof(double));
+    return data;
+}
 
 std::string getRouterIp()
 {
