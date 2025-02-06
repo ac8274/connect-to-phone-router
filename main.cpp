@@ -76,8 +76,10 @@ int main()
         currentLatatiude += extractDouble(buffer, 0);
         currentLongtatiude += extractDouble(buffer, sizeof(double));
         currentElevation += extractDouble(buffer, sizeof(double)*2);
+
+        std::cout << "Recived:\nLatatiude: " << currentLatatiude << "\nLongtatiude: " << currentLongtatiude << "\nElevation: " << currentElevation << "\n------------------------------------------"<< std::endl;
         
-        std::cin >> hello;
+        Sleep(5000); // wait 5 seconds before sending back the data.
     }
 
     // Close socket
