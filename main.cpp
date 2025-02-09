@@ -3,6 +3,8 @@
 #include <WinSock2.h>
 #include <Windows.h>
 #include <iostream>
+#include <cstdint>      // For `uint64_t`
+#include <cstring>      // For `memcpy`
 #include <string>
 #include <iphlpapi.h>
 
@@ -13,6 +15,8 @@
 void pushDouble(double src, char* dest, int offset);
 double extractDouble(char* buffer, int offset);
 std::string getRouterIp();
+uint64_t swapEndianness(uint64_t value);
+double receiveDouble(int clientSocket);
 int main()
 {
 
@@ -63,7 +67,7 @@ int main()
     double currentElevation = 2.9;
     while(hello != "STOP")
     {
-        char buffer[4096];
+        char buffer[4096] = { 0 };
 
         pushDouble(currentLatatiude, buffer, 0);
         pushDouble(currentLongtatiude, buffer, sizeof(double));
@@ -71,15 +75,15 @@ int main()
 
         send(clientSocket, buffer, 4096, 0);
 
-        recv(clientSocket, buffer, 4096, 0);
+        std::cout << "------------------------------------------" << std::endl;
 
-        currentLatatiude += extractDouble(buffer, 0);
-        currentLongtatiude += extractDouble(buffer, sizeof(double));
-        currentElevation += extractDouble(buffer, sizeof(double)*2);
+        currentLatatiude += receiveDouble(clientSocket);
+        currentLongtatiude += receiveDouble(clientSocket);
+        currentElevation += receiveDouble(clientSocket);
 
         std::cout << "Recived:\nLatatiude: " << currentLatatiude << "\nLongtatiude: " << currentLongtatiude << "\nElevation: " << currentElevation << "\n------------------------------------------"<< std::endl;
         
-        Sleep(5000); // wait 5 seconds before sending back the data.
+        //Sleep(2000); // wait 5 seconds before sending back the data.
     }
 
     // Close socket
@@ -150,4 +154,25 @@ std::string getRouterIp()
     }
     free(pAdapterInfo);
     return ans;
+}
+uint64_t swapEndianness(uint64_t value) {
+    return _byteswap_uint64(value);  // Swap to match Java's Big-Endian order
+}
+
+double receiveDouble(int clientSocket) 
+{
+    char buffer[8];  // Buffer to receive raw bytes
+    recv(clientSocket, buffer, sizeof(buffer), 0);
+
+    uint64_t temp;
+    memcpy(&temp, buffer, sizeof(temp));  // Copy bytes into uint64_t
+
+    temp = swapEndianness(temp);  // Convert from Java's Big-Endian to Windows' Little-Endian
+
+    double receivedValue;
+    memcpy(&receivedValue, &temp, sizeof(receivedValue));  // Copy into double
+
+    std::cout << "recived: " << receivedValue << std::endl;
+    
+    return receivedValue;
 }
