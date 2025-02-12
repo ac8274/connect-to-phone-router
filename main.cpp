@@ -1,4 +1,5 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
+#define _USE_MATH_DEFINES
 #pragma comment (lib, "ws2_32.lib")
 #include <WinSock2.h>
 #include <Windows.h>
@@ -7,19 +8,22 @@
 #include <cstring>      // For `memcpy`
 #include <string>
 #include <iphlpapi.h>
+#include <cmath>
 
 #pragma comment(lib, "iphlpapi.lib")  // Link with the IP Helper API library
 
 #define SERVER_PORT 4454
+#define EARTH_RADIUS 6371000.0  // Earth's radius in meters
+#define DEG_TO_RAD (M_PI / 180.0)
+#define RAD_TO_DEG (180.0 / M_PI)
 
 void pushDouble(double src, char* dest, int offset);
-double extractDouble(char* buffer, int offset);
 std::string getRouterIp();
 uint64_t swapEndianness(uint64_t value);
 double receiveDouble(int clientSocket);
 int main()
 {
-
+    
     std::string routerIp = getRouterIp();
     std::string input = "";
     std::cout << "Type 'START' when you have started the hotspot on the phone" << std::endl;
@@ -60,10 +64,8 @@ int main()
         return 1;
     }
     
-    std::string hello;
-    std::cout << "If wish to stop enter 'STOP' else Enter a letter (any letter)" << std::endl;
-    double currentLatatiude = 20.4;
-    double currentLongtatiude = 21.6;
+    double currentLatatiude = 31.27379972458028;
+    double currentLongtatiude = 34.80235696568683;
     double currentElevation = 2.9;
     int connection_status = 0;
     do
@@ -74,17 +76,19 @@ int main()
         pushDouble(currentLongtatiude, buffer, sizeof(uint64_t));
         pushDouble(currentElevation, buffer, sizeof(uint64_t) * 2);
 
-        send(clientSocket, buffer, 4096, 0);
+        send(clientSocket, buffer, 24, 0);
 
         std::cout << "------------------------------------------" << std::endl;
 
-        currentLatatiude += receiveDouble(clientSocket);
-        currentLongtatiude += receiveDouble(clientSocket);
+        double distance = receiveDouble(clientSocket);
+        double angle = receiveDouble(clientSocket);
         currentElevation += receiveDouble(clientSocket);
+
+        calculateNewPosition(distance, angle, currentLatatiude, currentLongtatiude);
 
         std::cout << "Recived:\nLatatiude: " << currentLatatiude << "\nLongtatiude: " << currentLongtatiude << "\nElevation: " << currentElevation << "\n------------------------------------------" << std::endl;
 
-        Sleep(3000); // wait 3 seconds before sending back the data.
+        Sleep(2000); // wait 3 seconds before sending back the data.
 
         char temp_buffer[1];
         result = recv(clientSocket, buffer, sizeof(buffer), MSG_PEEK);
@@ -107,13 +111,6 @@ void pushDouble(double src,char* dest, int offset)
     memcpy(dest+ offset, &temp, sizeof(temp));
 }
 
-double extractDouble(char* buffer,int offset)
-{
-    double data = 0;
-    memcpy(&data, buffer + offset, sizeof(double));
-    return data;
-}
-
 uint64_t swapEndianness(uint64_t value) {
     return _byteswap_uint64(value);  // Swap to match Java's Big-Endian order
 }
@@ -132,6 +129,24 @@ double receiveDouble(int clientSocket)
     memcpy(&receivedValue, &temp, sizeof(receivedValue));  // Copy into double
     
     return receivedValue;
+}
+
+void calculateNewPosition(double distance, double bearing, double& newLat, double& newLon) {
+    double lat = newLat * DEG_TO_RAD;  // Convert to radians
+    double lon = newLon * DEG_TO_RAD;
+    bearing *= DEG_TO_RAD;
+
+    double delta = distance / EARTH_RADIUS;
+
+    // New latitude calculation
+    newLat = asin(sin(lat) * cos(delta) + cos(lat) * sin(delta) * cos(bearing));
+
+    // New longitude calculation
+    newLon = lon + atan2(sin(bearing) * sin(delta) * cos(lat), cos(delta) - sin(lat) * sin(newLat));
+
+    // Convert back to degrees
+    newLat *= RAD_TO_DEG;
+    newLon *= RAD_TO_DEG;
 }
 
 
