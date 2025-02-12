@@ -84,7 +84,7 @@ int main()
 
         std::cout << "Recived:\nLatatiude: " << currentLatatiude << "\nLongtatiude: " << currentLongtatiude << "\nElevation: " << currentElevation << "\n------------------------------------------" << std::endl;
 
-        //Sleep(2000); // wait 5 seconds before sending back the data.
+        Sleep(3000); // wait 3 seconds before sending back the data.
 
         char temp_buffer[1];
         result = recv(clientSocket, buffer, sizeof(buffer), MSG_PEEK);
@@ -130,8 +130,6 @@ double receiveDouble(int clientSocket)
 
     double receivedValue;
     memcpy(&receivedValue, &temp, sizeof(receivedValue));  // Copy into double
-
-    std::cout << "recived: " << receivedValue << std::endl;
     
     return receivedValue;
 }
