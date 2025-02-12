@@ -68,38 +68,41 @@ int main()
     double currentLongtatiude = 34.80235696568683;
     double currentElevation = 2.9;
     int connection_status = 0;
-    do
+    try {
+        do
+        {
+            char buffer[4096] = { 0 };
+
+            pushDouble(currentLatatiude, buffer, 0);
+            pushDouble(currentLongtatiude, buffer, sizeof(uint64_t));
+            pushDouble(currentElevation, buffer, sizeof(uint64_t) * 2);
+
+            send(clientSocket, buffer, 24, 0);
+
+            std::cout << "------------------------------------------" << std::endl;
+
+            double distance = receiveDouble(clientSocket);
+            double angle = receiveDouble(clientSocket);
+            currentElevation += receiveDouble(clientSocket);
+
+            calculateNewPosition(distance, angle, currentLatatiude, currentLongtatiude);
+
+            std::cout << "Recived:\nLatatiude: " << currentLatatiude << "\nLongtatiude: " << currentLongtatiude << "\nElevation: " << currentElevation << "\n------------------------------------------" << std::endl;
+
+            Sleep(2000); // wait 3 seconds before sending back the data.
+
+
+        } while (true);
+    }
+    catch (const std::invalid_argument& e)
     {
-        char buffer[4096] = { 0 };
+        // Close socket
+        closesocket(clientSocket);
 
-        pushDouble(currentLatatiude, buffer, 0);
-        pushDouble(currentLongtatiude, buffer, sizeof(uint64_t));
-        pushDouble(currentElevation, buffer, sizeof(uint64_t) * 2);
-
-        send(clientSocket, buffer, 24, 0);
-
-        std::cout << "------------------------------------------" << std::endl;
-
-        double distance = receiveDouble(clientSocket);
-        double angle = receiveDouble(clientSocket);
-        currentElevation += receiveDouble(clientSocket);
-
-        calculateNewPosition(distance, angle, currentLatatiude, currentLongtatiude);
-
-        std::cout << "Recived:\nLatatiude: " << currentLatatiude << "\nLongtatiude: " << currentLongtatiude << "\nElevation: " << currentElevation << "\n------------------------------------------" << std::endl;
-
-        Sleep(2000); // wait 3 seconds before sending back the data.
-
-        char temp_buffer[1];
-        result = recv(clientSocket, buffer, sizeof(buffer), MSG_PEEK);
-    } while (result != 0 && result!= SOCKET_ERROR);
-
-    // Close socket
-    closesocket(clientSocket);
-
-    // Clean up Winsock
-    WSACleanup();
-
+        // Clean up Winsock
+        WSACleanup();
+    }
+    
     return 0;
 }
 
@@ -117,18 +120,25 @@ uint64_t swapEndianness(uint64_t value) {
 
 double receiveDouble(int clientSocket) 
 {
+
     char buffer[8];  // Buffer to receive raw bytes
-    recv(clientSocket, buffer, sizeof(buffer), 0);
+    int recived = recv(clientSocket, buffer, sizeof(buffer), 0);
+    if (recived > 0)
+    {
+        uint64_t temp;
+        memcpy(&temp, buffer, sizeof(temp));  // Copy bytes into uint64_t
 
-    uint64_t temp;
-    memcpy(&temp, buffer, sizeof(temp));  // Copy bytes into uint64_t
+        temp = swapEndianness(temp);  // Convert from Java's Big-Endian to Windows' Little-Endian
 
-    temp = swapEndianness(temp);  // Convert from Java's Big-Endian to Windows' Little-Endian
+        double receivedValue;
+        memcpy(&receivedValue, &temp, sizeof(receivedValue));  // Copy into double
 
-    double receivedValue;
-    memcpy(&receivedValue, &temp, sizeof(receivedValue));  // Copy into double
-    
-    return receivedValue;
+        return receivedValue;
+    }
+    else
+    {
+        throw std::invalid_argument("Socket Closed");
+    }
 }
 
 void calculateNewPosition(double distance, double bearing, double& newLat, double& newLon) {
