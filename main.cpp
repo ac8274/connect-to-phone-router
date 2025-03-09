@@ -16,11 +16,13 @@
 #define EARTH_RADIUS 6371000.0  // Earth's radius in meters
 #define DEG_TO_RAD (M_PI / 180.0)
 #define RAD_TO_DEG (180.0 / M_PI)
+#define SECOND 1000
 
 void pushDouble(double src, char* dest, int offset);
 std::string getRouterIp();
 uint64_t swapEndianness(uint64_t value);
 double receiveDouble(int clientSocket);
+void calculateNewPosition(double distance, double bearing, double& newLat, double& newLon);
 int main()
 {
     
@@ -68,6 +70,7 @@ int main()
     double currentLongtatiude = 34.80235696568683;
     double currentElevation = 2.9;
     int connection_status = 0;
+    int wait_time = 2 * SECOND;
     try {
         do
         {
@@ -89,8 +92,7 @@ int main()
 
             std::cout << "Recived:\nLatatiude: " << currentLatatiude << "\nLongtatiude: " << currentLongtatiude << "\nElevation: " << currentElevation << "\n------------------------------------------" << std::endl;
 
-            Sleep(2000); // wait 3 seconds before sending back the data.
-
+            Sleep(wait_time); // wait 2 seconds before sending back the data.
 
         } while (true);
     }
