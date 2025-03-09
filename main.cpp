@@ -3,6 +3,7 @@
 #pragma comment (lib, "ws2_32.lib")
 #include <WinSock2.h>
 #include <Windows.h>
+#include <ws2tcpip.h>
 #include <iostream>
 #include <cstdint>      // For `uint64_t`
 #include <cstring>      // For `memcpy`
@@ -18,6 +19,7 @@
 #define RAD_TO_DEG (180.0 / M_PI)
 #define SECOND 1000
 
+bool isSocketOpen(int socket);
 void pushDouble(double src, char* dest, int offset);
 std::string getRouterIp();
 uint64_t swapEndianness(uint64_t value);
@@ -94,7 +96,7 @@ int main()
 
             Sleep(wait_time); // wait 2 seconds before sending back the data.
 
-        } while (true);
+        } while (isSocketOpen(clientSocket)); //check if server closed connection.
     }
     catch (const std::invalid_argument& e)
     {
@@ -159,6 +161,31 @@ void calculateNewPosition(double distance, double bearing, double& newLat, doubl
     // Convert back to degrees
     newLat *= RAD_TO_DEG;
     newLon *= RAD_TO_DEG;
+}
+
+// Function to check if the socket is still open
+bool isSocketOpen(int socket) {
+    fd_set readfds;
+    FD_ZERO(&readfds);
+    FD_SET(socket, &readfds);
+
+    timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 0;
+
+    int result = select(0, &readfds, NULL, NULL, &timeout);
+    if (result > 0) {
+        char buffer[1];
+		int recvResult = recv(socket, buffer, sizeof(buffer), MSG_PEEK); // MSG_PEEL: check the data without removing it from the buffer.
+        if (recvResult == 0) {
+            return false; // Connection closed
+        }
+    }
+    else
+    {
+        return result == 0;
+    }
+    return true; // Connection is still open
 }
 
 
