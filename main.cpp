@@ -98,7 +98,7 @@ int main()
 
         } while (isSocketOpen(clientSocket)); //check if server closed connection.
     }
-    catch (const std::invalid_argument& e)
+    catch (const std::invalid_argument& e)  
     {
         // Close socket
         closesocket(clientSocket);
